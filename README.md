@@ -1,4 +1,4 @@
-# AnyDesk Config Cleaner 🧹
+# Remover Anúncio/Propaganda Do AnyDesk 🧹
 
 Este script `.bat` foi criado para localizar e remover automaticamente os arquivos `service.conf` e `system.conf` da instalação do AnyDesk na pasta `AppData\Roaming`, independentemente do nome de usuário do sistema.
 
