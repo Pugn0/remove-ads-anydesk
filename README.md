@@ -12,7 +12,7 @@ Este script `.bat` foi criado para localizar e remover automaticamente os arquiv
 
 ## 💻 Como usar
 
-1. Baixe o arquivo `remover_ads_anydesk.bat`
+1. encontre `iniciar.bat`
 2. Clique com o botão direito e selecione **Executar como administrador**
 3. Pronto! Os arquivos serão apagados, se encontrados.
 
