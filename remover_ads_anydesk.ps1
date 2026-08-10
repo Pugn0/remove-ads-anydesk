@@ -22,17 +22,36 @@ function Install-GlobalCommand {
     Write-Host "========================================" -ForegroundColor Green
     Write-Host ""
 
-    # Cria um .cmd em C:\Windows para ficar no PATH global
-    $cmdPath = "C:\Windows\anydesk.cmd"
     $cmdContent = @"
 @echo off
 powershell -NoProfile -ExecutionPolicy Bypass -Command "irm https://raw.githubusercontent.com/Pugn0/remove-ads-anydesk/main/remover_ads_anydesk.ps1 | iex"
 pause
 "@
 
-    try {
-        Set-Content -Path $cmdPath -Value $cmdContent -Force -ErrorAction Stop
-        Write-Host "  [OK] Comando 'anydesk' instalado com sucesso!" -ForegroundColor Green
+    # Tenta primeiro em C:\Windows (requer Admin), senao usa pasta do usuario no PATH
+    $installed = $false
+    $installPaths = @(
+        "C:\Windows\anydesk.cmd",
+        (Join-Path $env:LOCALAPPDATA "Microsoft\WindowsApps\anydesk.cmd")
+    )
+
+    foreach ($cmdPath in $installPaths) {
+        try {
+            $dir = Split-Path $cmdPath -Parent
+            if (-not (Test-Path $dir)) {
+                New-Item -Path $dir -ItemType Directory -Force | Out-Null
+            }
+            Set-Content -Path $cmdPath -Value $cmdContent -Force -ErrorAction Stop
+            Write-Host "  [OK] Comando 'anydesk' instalado em:" -ForegroundColor Green
+            Write-Host "       $cmdPath" -ForegroundColor White
+            $installed = $true
+            break
+        } catch {
+            continue
+        }
+    }
+
+    if ($installed) {
         Write-Host ""
         Write-Host "  Agora voce pode digitar em qualquer terminal:" -ForegroundColor Cyan
         Write-Host ""
@@ -40,13 +59,10 @@ pause
         Write-Host ""
         Write-Host "  E o script sera executado automaticamente." -ForegroundColor Cyan
         Write-Host ""
-        return $true
-    } catch {
-        Write-Host "  [ERRO] Falha ao instalar comando global." -ForegroundColor Red
-        Write-Host "  Certifique-se de executar como Administrador." -ForegroundColor Yellow
-        Write-Host "  Erro: $_" -ForegroundColor Red
+    } else {
+        Write-Host "  [ERRO] Nao foi possivel instalar o comando." -ForegroundColor Red
+        Write-Host "  Tente executar como Administrador." -ForegroundColor Yellow
         Write-Host ""
-        return $false
     }
 }
 
