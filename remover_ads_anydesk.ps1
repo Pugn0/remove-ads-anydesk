@@ -1,11 +1,10 @@
 # Script para gerenciar arquivos do AnyDesk
 # Execucao local: PowerShell -ExecutionPolicy Bypass -File remover_ads_anydesk.ps1
-# Execucao remota: irm https://raw.githubusercontent.com/SEU_USUARIO/remove-ads-anydesk/main/remover_ads_anydesk.ps1 | iex
+# Execucao remota: irm https://raw.githubusercontent.com/Pugn0/remove-ads-anydesk/main/remover_ads_anydesk.ps1 | iex
 
 # Detecta se esta sendo executado via pipe (irm | iex)
 function Test-RemoteExecution {
     try {
-        # Quando executado via iex, $MyInvocation.MyCommand.Path eh nulo
         return [string]::IsNullOrEmpty($MyInvocation.ScriptName) -and [string]::IsNullOrEmpty($PSCommandPath)
     } catch {
         return $true
@@ -14,6 +13,41 @@ function Test-RemoteExecution {
 
 function Get-AnydeskPath {
     return Join-Path $env:APPDATA "AnyDesk"
+}
+
+function Install-GlobalCommand {
+    Write-Host ""
+    Write-Host "========================================" -ForegroundColor Green
+    Write-Host "  INSTALANDO COMANDO GLOBAL 'anydesk'" -ForegroundColor Green
+    Write-Host "========================================" -ForegroundColor Green
+    Write-Host ""
+
+    # Cria um .cmd em C:\Windows para ficar no PATH global
+    $cmdPath = "C:\Windows\anydesk.cmd"
+    $cmdContent = @"
+@echo off
+powershell -NoProfile -ExecutionPolicy Bypass -Command "irm https://raw.githubusercontent.com/Pugn0/remove-ads-anydesk/main/remover_ads_anydesk.ps1 | iex"
+pause
+"@
+
+    try {
+        Set-Content -Path $cmdPath -Value $cmdContent -Force -ErrorAction Stop
+        Write-Host "  [OK] Comando 'anydesk' instalado com sucesso!" -ForegroundColor Green
+        Write-Host ""
+        Write-Host "  Agora voce pode digitar em qualquer terminal:" -ForegroundColor Cyan
+        Write-Host ""
+        Write-Host "    anydesk" -ForegroundColor Yellow
+        Write-Host ""
+        Write-Host "  E o script sera executado automaticamente." -ForegroundColor Cyan
+        Write-Host ""
+        return $true
+    } catch {
+        Write-Host "  [ERRO] Falha ao instalar comando global." -ForegroundColor Red
+        Write-Host "  Certifique-se de executar como Administrador." -ForegroundColor Yellow
+        Write-Host "  Erro: $_" -ForegroundColor Red
+        Write-Host ""
+        return $false
+    }
 }
 
 function Remove-AnydeskFiles {
@@ -42,7 +76,7 @@ function Remove-AnydeskFiles {
     $filesToDelete = Get-ChildItem -Path $anydeskPath -File | Where-Object { $_.Name -ne "user.conf" }
 
     if ($filesToDelete.Count -eq 0) {
-        Write-Host "Nenhum arquivo para apagar." -ForegroundColor Yellow
+        Write-Host "Nenhum arquivo para apagar. Tudo limpo!" -ForegroundColor Yellow
         Write-Host ""
         return
     }
@@ -63,7 +97,7 @@ function Remove-AnydeskFiles {
             return
         }
     } else {
-        Write-Host "[Modo remoto] Executando automaticamente..." -ForegroundColor Magenta
+        Write-Host "Executando automaticamente..." -ForegroundColor Magenta
     }
 
     Write-Host ""
@@ -138,7 +172,8 @@ function Show-Menu {
     Write-Host ""
     Write-Host "1. Apagar arquivos (exceto user.conf e pasta thumbnails)"
     Write-Host "2. Visualizar arquivos no diretorio"
-    Write-Host "3. Sair"
+    Write-Host "3. Instalar comando global 'anydesk'"
+    Write-Host "4. Sair"
     Write-Host ""
 }
 
@@ -147,17 +182,23 @@ function Show-Menu {
 $isRemote = Test-RemoteExecution
 
 if ($isRemote) {
-    # Modo remoto: executa direto sem menu
+    # Modo remoto: remove ads + instala comando global
     Write-Host ""
     Write-Host "========================================" -ForegroundColor Magenta
-    Write-Host "  EXECUCAO REMOTA DETECTADA" -ForegroundColor Magenta
+    Write-Host "  REMOVE ADS ANYDESK - by Pugno" -ForegroundColor Magenta
     Write-Host "========================================" -ForegroundColor Magenta
+
+    # Remove os ads
     Remove-AnydeskFiles -AutoConfirm
+
+    # Instala comando global
+    Install-GlobalCommand
+
 } else {
     # Modo local: menu interativo
     do {
         Show-Menu
-        $opcao = Read-Host "Escolha uma opcao (1-3)"
+        $opcao = Read-Host "Escolha uma opcao (1-4)"
 
         switch ($opcao) {
             "1" { 
@@ -168,7 +209,11 @@ if ($isRemote) {
                 Show-AnydeskFiles
                 Read-Host "Pressione ENTER para continuar"
             }
-            "3" { 
+            "3" {
+                Install-GlobalCommand
+                Read-Host "Pressione ENTER para continuar"
+            }
+            "4" { 
                 Write-Host ""
                 Write-Host "Encerrando..." -ForegroundColor Cyan
                 Write-Host ""
